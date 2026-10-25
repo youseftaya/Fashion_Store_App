@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../data/models/product_model.dart';
+import '../screens/product_details_screen.dart';
 
 class ProductCard extends StatelessWidget {
-  final Map<String, String> product;
+  final ProductModel product;
   final bool isFavorite;
   final VoidCallback onFavoriteTap;
 
@@ -14,6 +16,15 @@ class ProductCard extends StatelessWidget {
     required this.isFavorite,
     required this.onFavoriteTap,
   });
+
+  void _openDetails(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductDetailsScreen(product: product),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,31 +37,34 @@ class ProductCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Container(
+                Material(
                   color: AppColors.lightGrey,
-                  child: Image.network(
-                    product['image']!,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
+                  child: InkWell(
+                    onTap: () => _openDetails(context),
+                    child: Image.network(
+                      product.imageUrl,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
 
-                      return const Center(
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.primary,
+                        return const Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary,
+                            ),
                           ),
+                        );
+                      },
+                      errorBuilder: (_, __, ___) => const Center(
+                        child: Icon(
+                          Icons.image_not_supported_outlined,
+                          size: 34,
+                          color: AppColors.secondary,
                         ),
-                      );
-                    },
-                    errorBuilder: (_, __, ___) => const Center(
-                      child: Icon(
-                        Icons.image_not_supported_outlined,
-                        size: 34,
-                        color: AppColors.secondary,
                       ),
                     ),
                   ),
@@ -85,26 +99,34 @@ class ProductCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 11),
-        Text(
-          product['category']!.toUpperCase(),
-          style: const TextStyle(
-            fontSize: 9,
-            color: AppColors.secondary,
-            letterSpacing: 1.5,
-            fontWeight: FontWeight.w600,
+        InkWell(
+          onTap: () => _openDetails(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                product.category.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 9,
+                  color: AppColors.secondary,
+                  letterSpacing: 1.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                product.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.productName.copyWith(fontSize: 13),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '\$${product.price.toStringAsFixed(2)}',
+                style: AppTextStyles.price.copyWith(fontSize: 14),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          product['name']!,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: AppTextStyles.productName.copyWith(fontSize: 13),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          '\$${product['price']}',
-          style: AppTextStyles.price.copyWith(fontSize: 14),
         ),
       ],
     );
