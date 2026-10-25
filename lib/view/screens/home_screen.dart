@@ -12,6 +12,7 @@ import '../widgets/product_card.dart';
 import '../widgets/promo_banner.dart';
 import '../widgets/search_bar_widget.dart';
 import 'cart_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,7 +44,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _selectNavigation(int index) {
-    // Open the Cart screen.
     if (index == 2) {
       Navigator.push(
         context,
@@ -54,21 +54,16 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // Profile screen will be implemented later.
     if (index == 3) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Profile screen will be added next.'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: AppColors.primary,
-          ),
-        );
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const ProfileScreen(),
+        ),
+      );
       return;
     }
 
-    // Home and Saved Items.
     setState(() {
       _selectedNavIndex = index;
       _showFavoritesOnly = index == 1;
