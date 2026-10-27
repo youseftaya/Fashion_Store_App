@@ -9,10 +9,17 @@ class ProductProvider extends ChangeNotifier {
   List<ProductModel> _products = [];
   final Set<String> _favoriteProductIds = {};
 
+  bool _isLoading = false;
+  String? _errorMessage;
+
   List<ProductModel> get products => List.unmodifiable(_products);
 
   Set<String> get favoriteProductIds =>
       Set.unmodifiable(_favoriteProductIds);
+
+  bool get isLoading => _isLoading;
+
+  String? get errorMessage => _errorMessage;
 
   List<ProductModel> get favoriteProducts {
     return _products
@@ -24,9 +31,23 @@ class ProductProvider extends ChangeNotifier {
     loadProducts();
   }
 
-  void loadProducts() {
-    _products = _repository.getProducts();
+  Future<void> loadProducts() async {
+    if (_isLoading) return;
+
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
+
+    try {
+      _products = await _repository.getProducts();
+    } catch (error, stackTrace) {
+      _errorMessage = 'Failed to load products. Please try again.';
+      debugPrint('Load products error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   bool isFavorite(String productId) {

@@ -1,42 +1,45 @@
 import '../models/product_model.dart';
+import '../services/api_service.dart';
 
 class ProductRepository {
-  final List<ProductModel> _products = const [
-    ProductModel(
-      id: '1',
-      name: 'Classic Oversized Shirt',
-      category: 'Men',
-      imageUrl:
-          'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600',
-      price: 49.00,
-    ),
-    ProductModel(
-      id: '2',
-      name: 'Minimal Summer Outfit',
-      category: 'Women',
-      imageUrl:
-          'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=600',
-      price: 65.00,
-    ),
-    ProductModel(
-      id: '3',
-      name: 'Essential White Sneakers',
-      category: 'Shoes',
-      imageUrl:
-          'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600',
-      price: 79.00,
-    ),
-    ProductModel(
-      id: '4',
-      name: 'Everyday Shoulder Bag',
-      category: 'Accessories',
-      imageUrl:
-          'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600',
-      price: 39.00,
-    ),
+  final ApiService _apiService;
+
+  ProductRepository({ApiService? apiService})
+      : _apiService = apiService ?? ApiService();
+
+  static const List<String> _categories = [
+    'mens-shirts',
+    'mens-shoes',
+    'womens-dresses',
+    'womens-shoes',
   ];
 
-  List<ProductModel> getProducts() {
-    return _products;
+  Future<List<ProductModel>> getProducts() async {
+    final results = await Future.wait(
+      _categories.map((category) async {
+        try {
+          return await _apiService.fetchProducts(
+            category: category,
+          );
+        } catch (error) {
+          return <dynamic>[];
+        }
+      }),
+    );
+
+    final productsById = <String, ProductModel>{};
+
+    for (final categoryProducts in results) {
+      for (final item in categoryProducts) {
+        if (item is! Map<String, dynamic>) {
+          continue;
+        }
+
+        final product = ProductModel.fromJson(item);
+        productsById[product.id] = product;
+      }
+    }
+
+    return productsById.values.toList();
   }
 }

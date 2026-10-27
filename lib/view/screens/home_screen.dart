@@ -32,8 +32,33 @@ class _HomeScreenState extends State<HomeScreen> {
     'Men',
     'Women',
     'Shoes',
-    'Accessories',
   ];
+
+  bool _matchesCategory(String selectedCategory, String productCategory) {
+    switch (selectedCategory) {
+      case 'All':
+        return true;
+
+      case 'Men':
+        return productCategory == 'mens-shirts' ||
+            productCategory == 'mens-shoes';
+
+      case 'Women':
+        return productCategory == 'womens-dresses' ||
+            productCategory == 'womens-shoes';
+
+      case 'Kids':
+        // DummyJSON does not currently provide a dedicated kids category.
+        return false;
+
+      case 'Shoes':
+        return productCategory == 'mens-shoes' ||
+            productCategory == 'womens-shoes';
+
+      default:
+        return false;
+    }
+  }
 
   void _selectCategory(String category) {
     setState(() {
@@ -81,8 +106,10 @@ class _HomeScreenState extends State<HomeScreen> {
         final allProducts = productProvider.products;
 
         final filteredProducts = allProducts.where((product) {
-          final matchesCategory = _selectedCategory == 'All' ||
-              product.category == _selectedCategory;
+          final matchesCategory = _matchesCategory(
+            _selectedCategory,
+            product.category,
+          );
 
           final matchesSearch = product.name
               .toLowerCase()
@@ -106,9 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
               slivers: [
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      20, 20, 20, 0,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                     child: HomeHeader(
                       onProfileTap: () => _selectNavigation(3),
                     ),
@@ -116,9 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      20, 24, 20, 0,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                     child: SearchBarWidget(
                       query: _searchQuery,
                       onChanged: (value) {
@@ -137,9 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (!_showFavoritesOnly) ...[
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        20, 28, 20, 0,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
                       child: CategoryList(
                         categories: _categories,
                         selectedCategory: _selectedCategory,
@@ -149,21 +170,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        20, 26, 20, 0,
-                      ),
+                      padding: EdgeInsets.fromLTRB(20, 26, 20, 0),
                       child: PromoBanner(),
                     ),
                   ),
                 ],
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      20, 28, 20, 16,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
                     child: Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
                           child: Text(
@@ -172,8 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 : _selectedCategory == 'All'
                                     ? 'FEATURED PRODUCTS'
                                     : _selectedCategory.toUpperCase(),
-                            style:
-                                AppTextStyles.sectionTitle.copyWith(
+                            style: AppTextStyles.sectionTitle.copyWith(
                               fontSize: 17,
                               letterSpacing: 0.3,
                             ),
@@ -192,7 +207,43 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                if (filteredProducts.isEmpty)
+                if (productProvider.isLoading)
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (productProvider.errorMessage != null)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.wifi_off_rounded,
+                              size: 42,
+                              color: AppColors.secondary,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              productProvider.errorMessage!,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: productProvider.loadProducts,
+                              child: const Text('Try Again'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                else if (filteredProducts.isEmpty)
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: EmptyState(
@@ -202,9 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   )
                 else
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(
-                      20, 0, 20, 24,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                     sliver: SliverGrid(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
@@ -215,9 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             isFavorite:
                                 productProvider.isFavorite(product.id),
                             onFavoriteTap: () {
-                              productProvider.toggleFavorite(
-                                product.id,
-                              );
+                              productProvider.toggleFavorite(product.id);
                             },
                           );
                         },
