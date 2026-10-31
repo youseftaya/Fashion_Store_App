@@ -27,6 +27,33 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _showFavoritesOnly = false;
   int _selectedNavIndex = 0;
 
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _scrollController = ScrollController()
+      ..addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
+    if (_scrollController.position.extentAfter < 500) {
+      context.read<ProductProvider>().loadMoreProducts();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+
+    super.dispose();
+  }
+
   bool _matchesCategory(
     String selectedCategory,
     String productCategory,
@@ -119,165 +146,198 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: AppColors.background,
           body: SafeArea(
             bottom: false,
-            child: CustomScrollView(
-              keyboardDismissBehavior:
-                  ScrollViewKeyboardDismissBehavior.onDrag,
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                    child: HomeHeader(
-                      onProfileTap: () => _selectNavigation(3),
-                    ),
-                  ),
-                ),
-
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                    child: SearchBarWidget(
-                      query: _searchQuery,
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                      },
-                      onClear: () {
-                        setState(() {
-                          _searchQuery = '';
-                        });
-                      },
-                    ),
-                  ),
-                ),
-
-                if (!_showFavoritesOnly) ...[
+            child: RefreshIndicator(
+              color: Theme.of(context).colorScheme.primary,
+              backgroundColor: AppColors.background,
+              onRefresh: productProvider.refreshProducts,
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
-                      child: CategoryList(
-                        categories: categories,
-                        selectedCategory: _selectedCategory,
-                        onCategorySelected: _selectCategory,
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                      child: HomeHeader(
+                        onProfileTap: () => _selectNavigation(3),
                       ),
                     ),
                   ),
 
-                  const SliverToBoxAdapter(
+                  SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(20, 26, 20, 0),
-                      child: PromoBanner(),
-                    ),
-                  ),
-                ],
-
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _showFavoritesOnly
-                                ? 'SAVED ITEMS'
-                                : _selectedCategory == 'All'
-                                    ? 'FEATURED PRODUCTS'
-                                    : _selectedCategory.toUpperCase(),
-                            style: AppTextStyles.sectionTitle.copyWith(
-                              fontSize: 17,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          '${filteredProducts.length} ITEMS',
-                          style: const TextStyle(
-                            color: AppColors.secondary,
-                            fontSize: 10,
-                            letterSpacing: 1.2,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                if (productProvider.isLoading && allProducts.isEmpty)
-                  const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                else if (productProvider.errorMessage != null &&
-                    allProducts.isEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.wifi_off_rounded,
-                              size: 42,
-                              color: AppColors.secondary,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              productProvider.errorMessage!,
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: productProvider.loadProducts,
-                              child: const Text('Try Again'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  )
-                else if (filteredProducts.isEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: EmptyState(
-                      isFavorites: _showFavoritesOnly,
-                      onExplore: () => _selectNavigation(0),
-                    ),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                    sliver: SliverGrid(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final product = filteredProducts[index];
-
-                          return ProductCard(
-                            product: product,
-                            isFavorite:
-                                productProvider.isFavorite(product.id),
-                            onFavoriteTap: () {
-                              productProvider.toggleFavorite(product.id);
-                            },
-                          );
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                      child: SearchBarWidget(
+                        query: _searchQuery,
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
                         },
-                        childCount: filteredProducts.length,
-                      ),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 22,
-                        childAspectRatio: 0.57,
+                        onClear: () {
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                        },
                       ),
                     ),
                   ),
-              ],
+
+                  if (!_showFavoritesOnly) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+                        child: CategoryList(
+                          categories: categories,
+                          selectedCategory: _selectedCategory,
+                          onCategorySelected: _selectCategory,
+                        ),
+                      ),
+                    ),
+
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(20, 26, 20, 0),
+                        child: PromoBanner(),
+                      ),
+                    ),
+                  ],
+
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _showFavoritesOnly
+                                  ? 'SAVED ITEMS'
+                                  : _selectedCategory == 'All'
+                                      ? 'FEATURED PRODUCTS'
+                                      : _selectedCategory.toUpperCase(),
+                              style: AppTextStyles.sectionTitle.copyWith(
+                                fontSize: 17,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${filteredProducts.length} ITEMS',
+                            style: const TextStyle(
+                              color: AppColors.secondary,
+                              fontSize: 10,
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  if (productProvider.isLoading && allProducts.isEmpty)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (productProvider.errorMessage != null &&
+                      allProducts.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.wifi_off_rounded,
+                                size: 42,
+                                color: AppColors.secondary,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                productProvider.errorMessage!,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: productProvider.loadProducts,
+                                child: const Text('Try Again'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (filteredProducts.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: EmptyState(
+                        isFavorites: _showFavoritesOnly,
+                        onExplore: () => _selectNavigation(0),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                      sliver: SliverGrid(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final product = filteredProducts[index];
+
+                            return ProductCard(
+                              product: product,
+                              isFavorite:
+                                  productProvider.isFavorite(product.id),
+                              onFavoriteTap: () {
+                                productProvider.toggleFavorite(product.id);
+                              },
+                            );
+                          },
+                          childCount: filteredProducts.length,
+                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 22,
+                          childAspectRatio: 0.57,
+                        ),
+                      ),
+                    ),
+
+                  if (productProvider.isLoadingMore)
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                    )
+                  else if (productProvider.loadMoreError != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          left: 20,
+                          right: 20,
+                          bottom: 24,
+                        ),
+                        child: Center(
+                          child: TextButton(
+                            onPressed: productProvider.loadMoreProducts,
+                            child: const Text('Retry loading more products'),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
           bottomNavigationBar: HomeBottomNav(

@@ -11,7 +11,7 @@ class ApiService {
       : _client = client ?? http.Client();
 
   Future<List<dynamic>> fetchProducts({
-    int limit = 100,
+    int limit = 10,
     int offset = 0,
   }) async {
     final uri = Uri.parse(

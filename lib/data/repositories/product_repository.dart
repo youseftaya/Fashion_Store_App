@@ -7,10 +7,13 @@ class ProductRepository {
   ProductRepository({ApiService? apiService})
       : _apiService = apiService ?? ApiService();
 
-  Future<List<ProductModel>> getProducts() async {
+  Future<List<ProductModel>> getProducts({
+    int limit = 10,
+    int offset = 0,
+  }) async {
     final results = await _apiService.fetchProducts(
-      limit: 100,
-      offset: 0,
+      limit: limit,
+      offset: offset,
     );
 
     final products = <ProductModel>[];
