@@ -11,14 +11,16 @@ class ApiService {
       : _client = client ?? http.Client();
 
   Future<List<dynamic>> fetchProducts({
-    String? category,
+    int limit = 100,
+    int offset = 0,
   }) async {
-    final endpoint = category == null
-        ? '/products'
-        : '/products/category/${Uri.encodeComponent(category)}';
-
     final uri = Uri.parse(
-      '${AppConstants.baseUrl}$endpoint',
+      '${AppConstants.baseUrl}/products',
+    ).replace(
+      queryParameters: {
+        'offset': offset.toString(),
+        'limit': limit.toString(),
+      },
     );
 
     final response = await _client
@@ -30,11 +32,6 @@ class ApiService {
 
       if (decodedData is List) {
         return decodedData;
-      }
-
-      if (decodedData is Map<String, dynamic> &&
-          decodedData['products'] is List) {
-        return decodedData['products'] as List<dynamic>;
       }
 
       throw const FormatException(

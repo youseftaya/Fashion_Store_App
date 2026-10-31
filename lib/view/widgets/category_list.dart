@@ -34,7 +34,8 @@ class CategoryList extends StatelessWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: categories.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (_, _) =>
+                const SizedBox(width: 10),
             itemBuilder: (context, index) {
               final category = categories[index];
               final isSelected = category == selectedCategory;

@@ -1,5 +1,6 @@
 class AppConstants {
   AppConstants._();
 
-  static const String baseUrl = 'https://dummyjson.com';
+  static const String baseUrl =
+      'https://api.escuelajs.co/api/v1';
 }

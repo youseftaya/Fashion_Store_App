@@ -27,37 +27,15 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _showFavoritesOnly = false;
   int _selectedNavIndex = 0;
 
-  final List<String> _categories = const [
-    'All',
-    'Men',
-    'Women',
-    'Shoes',
-  ];
-
-  bool _matchesCategory(String selectedCategory, String productCategory) {
-    switch (selectedCategory) {
-      case 'All':
-        return true;
-
-      case 'Men':
-        return productCategory == 'mens-shirts' ||
-            productCategory == 'mens-shoes';
-
-      case 'Women':
-        return productCategory == 'womens-dresses' ||
-            productCategory == 'womens-shoes';
-
-      case 'Kids':
-        // DummyJSON does not currently provide a dedicated kids category.
-        return false;
-
-      case 'Shoes':
-        return productCategory == 'mens-shoes' ||
-            productCategory == 'womens-shoes';
-
-      default:
-        return false;
+  bool _matchesCategory(
+    String selectedCategory,
+    String productCategory,
+  ) {
+    if (selectedCategory == 'All') {
+      return true;
     }
+
+    return selectedCategory == productCategory;
   }
 
   void _selectCategory(String category) {
@@ -105,6 +83,20 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, productProvider, child) {
         final allProducts = productProvider.products;
 
+        final categories = <String>[
+          'All',
+          ...allProducts
+              .map((product) => product.category)
+              .where((category) => category.trim().isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort(),
+        ];
+
+        if (!categories.contains(_selectedCategory)) {
+          _selectedCategory = 'All';
+        }
+
         final filteredProducts = allProducts.where((product) {
           final matchesCategory = _matchesCategory(
             _selectedCategory,
@@ -139,6 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
+
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
@@ -157,17 +150,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
+
                 if (!_showFavoritesOnly) ...[
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
                       child: CategoryList(
-                        categories: _categories,
+                        categories: categories,
                         selectedCategory: _selectedCategory,
                         onCategorySelected: _selectCategory,
                       ),
                     ),
                   ),
+
                   const SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(20, 26, 20, 0),
@@ -175,6 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ],
+
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
@@ -207,14 +203,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                if (productProvider.isLoading)
+
+                if (productProvider.isLoading && allProducts.isEmpty)
                   const SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(
                       child: CircularProgressIndicator(),
                     ),
                   )
-                else if (productProvider.errorMessage != null)
+                else if (productProvider.errorMessage != null &&
+                    allProducts.isEmpty)
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(

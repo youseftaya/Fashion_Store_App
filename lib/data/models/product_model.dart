@@ -19,22 +19,26 @@ class ProductModel {
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     final images = json['images'];
+    final categoryData = json['category'];
 
-    final thumbnail = json['thumbnail'] as String?;
-    final image = json['image'] as String?;
+    String imageUrl = '';
 
-    final imageUrl = thumbnail != null && thumbnail.isNotEmpty
-        ? thumbnail
-        : image != null && image.isNotEmpty
-            ? image
-            : images is List && images.isNotEmpty
-                ? images.first.toString()
-                : '';
+    if (images is List && images.isNotEmpty) {
+      imageUrl = images.first.toString();
+    }
+
+    String category = 'Other';
+
+    if (categoryData is Map<String, dynamic>) {
+      category = categoryData['name']?.toString() ?? 'Other';
+    } else if (categoryData is String) {
+      category = categoryData;
+    }
 
     return ProductModel(
       id: json['id'].toString(),
-      name: json['title'] as String? ?? 'Unnamed Product',
-      category: json['category'] as String? ?? 'Other',
+      name: json['title']?.toString() ?? 'Unnamed Product',
+      category: category,
       imageUrl: imageUrl,
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       discountPercentage:

@@ -39,9 +39,22 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _products = await _repository.getProducts();
+      final fetchedProducts = await _repository.getProducts();
+
+      _products = fetchedProducts;
+
+      debugPrint(
+        'Products loaded successfully: ${_products.length}',
+      );
+
+      for (final product in _products) {
+        debugPrint(
+          'Product: ${product.name} | Category: ${product.category}',
+        );
+      }
     } catch (error, stackTrace) {
-      _errorMessage = 'Failed to load products. Please try again.';
+      _errorMessage = 'Failed to load products: $error';
+
       debugPrint('Load products error: $error');
       debugPrintStack(stackTrace: stackTrace);
     } finally {
