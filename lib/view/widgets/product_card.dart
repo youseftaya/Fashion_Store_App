@@ -59,7 +59,7 @@ class ProductCard extends StatelessWidget {
                           ),
                         );
                       },
-                      errorBuilder: (_, __, ___) => const Center(
+                      errorBuilder: (_, _, _) => const Center(
                         child: Icon(
                           Icons.image_not_supported_outlined,
                           size: 34,

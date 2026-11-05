@@ -190,7 +190,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         width: 65,
                                         height: 75,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
+                                        errorBuilder: (_, _, _) => Container(
                                           width: 65,
                                           height: 75,
                                           color: AppColors.lightGrey,

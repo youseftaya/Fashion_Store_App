@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../data/models/order_model.dart';
 import 'order_section_card.dart';
 import 'order_info_row.dart';

@@ -18,7 +18,7 @@ class PromoBanner extends StatelessWidget {
             Image.network(
               'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200',
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+              errorBuilder: (_, _, _) => Container(
                 color: AppColors.lightGrey,
                 child: const Icon(
                   Icons.checkroom_outlined,

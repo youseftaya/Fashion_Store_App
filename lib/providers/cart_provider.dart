@@ -136,12 +136,12 @@ class CartProvider extends ChangeNotifier {
       _saveCart();
     }
   }
+    Future<void> clearCart() async {
+     if (_items.isEmpty) return;
 
-   Future<void> clearCart() async {
-    if (_items.isEmpty) return;
+     _items.clear();
 
-    _items.clear();
-
-    notifyListeners();
-   await _saveCart();
-  } 
+     notifyListeners();
+     await _saveCart();
+    }
+   }

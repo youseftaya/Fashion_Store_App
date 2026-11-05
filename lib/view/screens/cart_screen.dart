@@ -87,7 +87,7 @@ class CartScreen extends StatelessWidget {
                       child: ListView.separated(
                         padding: const EdgeInsets.all(20),
                         itemCount: items.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                             const SizedBox(height: 18),
                         itemBuilder: (context, index) {
                           final item = items[index];
@@ -103,7 +103,7 @@ class CartScreen extends StatelessWidget {
                                   width: 100,
                                   height: 125,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
+                                  errorBuilder: (_, _, _) => Container(
                                     width: 100,
                                     height: 125,
                                     color: AppColors.lightGrey,
