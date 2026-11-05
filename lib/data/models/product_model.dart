@@ -3,6 +3,7 @@ class ProductModel {
   final String name;
   final String category;
   final String imageUrl;
+  final String description;
   final double price;
   final double discountPercentage;
   final double rating;
@@ -12,6 +13,7 @@ class ProductModel {
     required this.name,
     required this.category,
     required this.imageUrl,
+    this.description = '',
     required this.price,
     this.discountPercentage = 0,
     this.rating = 0,
@@ -25,6 +27,8 @@ class ProductModel {
 
     if (images is List && images.isNotEmpty) {
       imageUrl = images.first.toString();
+    } else if (json['imageUrl'] != null) {
+      imageUrl = json['imageUrl'].toString();
     }
 
     String category = 'Other';
@@ -37,13 +41,28 @@ class ProductModel {
 
     return ProductModel(
       id: json['id'].toString(),
-      name: json['title']?.toString() ?? 'Unnamed Product',
+      name: (json['title'] ?? json['name'] ?? 'Unnamed Product')
+          .toString(),
       category: category,
       imageUrl: imageUrl,
+      description: json['description']?.toString() ?? '',
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       discountPercentage:
           (json['discountPercentage'] as num?)?.toDouble() ?? 0.0,
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': name,
+      'category': category,
+      'imageUrl': imageUrl,
+      'description': description,
+      'price': price,
+      'discountPercentage': discountPercentage,
+      'rating': rating,
+    };
   }
 }

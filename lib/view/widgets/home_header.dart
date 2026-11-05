@@ -19,7 +19,7 @@ class HomeHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'MODE',
+              'Mode Yousef',
               style: TextStyle(
                 fontSize: 29,
                 fontWeight: FontWeight.w900,

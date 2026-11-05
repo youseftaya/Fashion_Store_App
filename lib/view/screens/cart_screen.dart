@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../providers/cart_provider.dart';
+import 'checkout_screen.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -27,7 +28,6 @@ class CartScreen extends StatelessWidget {
                 color: AppColors.primary,
                 size: 20,
               ),
-              tooltip: 'Back to Home',
             ),
             title: Text(
               'MY CART',
@@ -101,13 +101,12 @@ class CartScreen extends StatelessWidget {
                                 child: Image.network(
                                   product.imageUrl,
                                   width: 100,
-                                  height: 120,
+                                  height: 125,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => Container(
                                     width: 100,
-                                    height: 120,
+                                    height: 125,
                                     color: AppColors.lightGrey,
-                                    alignment: Alignment.center,
                                     child: const Icon(
                                       Icons.image_not_supported_outlined,
                                       color: AppColors.secondary,
@@ -136,25 +135,31 @@ class CartScreen extends StatelessWidget {
                                       overflow: TextOverflow.ellipsis,
                                       style: AppTextStyles.productName,
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 7),
                                     Text(
                                       '\$${product.price.toStringAsFixed(2)}',
                                       style: AppTextStyles.price,
                                     ),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 7),
+                                    Text(
+                                      'Size: ${item.size}',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      'Color: ${item.color}',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    const SizedBox(height: 9),
                                     Row(
                                       children: [
                                         _QuantityButton(
                                           icon: Icons.remove,
-                                          onTap: () {
-                                            cart.decreaseQuantity(
-                                              product.id,
-                                            );
-                                          },
+                                          onTap: () =>
+                                              cart.decreaseQuantity(item.id),
                                         ),
                                         Padding(
-                                          padding:
-                                              const EdgeInsets.symmetric(
+                                          padding: const EdgeInsets.symmetric(
                                             horizontal: 14,
                                           ),
                                           child: Text(
@@ -166,20 +171,14 @@ class CartScreen extends StatelessWidget {
                                         ),
                                         _QuantityButton(
                                           icon: Icons.add,
-                                          onTap: () {
-                                            cart.increaseQuantity(
-                                              product.id,
-                                            );
-                                          },
+                                          onTap: () =>
+                                              cart.increaseQuantity(item.id),
                                         ),
                                         const Spacer(),
                                         IconButton(
                                           tooltip: 'Remove item',
-                                          onPressed: () {
-                                            cart.removeFromCart(
-                                              product.id,
-                                            );
-                                          },
+                                          onPressed: () =>
+                                              cart.removeFromCart(item.id),
                                           icon: const Icon(
                                             Icons.delete_outline,
                                             color: Colors.red,
@@ -196,18 +195,11 @@ class CartScreen extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.fromLTRB(
-                        20,
-                        20,
-                        20,
-                        24,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                       decoration: BoxDecoration(
                         color: AppColors.white,
                         border: Border(
-                          top: BorderSide(
-                            color: AppColors.lightGrey,
-                          ),
+                          top: BorderSide(color: AppColors.lightGrey),
                         ),
                       ),
                       child: SafeArea(
@@ -215,8 +207,7 @@ class CartScreen extends StatelessWidget {
                         child: Column(
                           children: [
                             Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const Text(
                                   'TOTAL',
@@ -240,25 +231,19 @@ class CartScreen extends StatelessWidget {
                               height: 52,
                               child: ElevatedButton(
                                 onPressed: () {
-                                  ScaffoldMessenger.of(context)
-                                    ..hideCurrentSnackBar()
-                                    ..showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Checkout will be added next.',
-                                        ),
-                                        behavior:
-                                            SnackBarBehavior.floating,
-                                      ),
-                                    );
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const CheckoutScreen(),
+                                    ),
+                                  );
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: AppColors.white,
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
                                 child: const Text(
@@ -303,10 +288,7 @@ class _QuantityButton extends StatelessWidget {
         child: SizedBox(
           width: 30,
           height: 30,
-          child: Icon(
-            icon,
-            size: 16,
-          ),
+          child: Icon(icon, size: 16),
         ),
       ),
     );

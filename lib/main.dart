@@ -6,8 +6,9 @@ import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
+import 'providers/order_provider.dart';
 import 'providers/product_provider.dart';
-import 'view/screens/home_screen.dart';
+import 'view/screens/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,13 +21,19 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
+          lazy: false,
           create: (_) => ProductProvider(),
         ),
         ChangeNotifierProvider(
+          lazy: false,
           create: (_) => CartProvider(),
         ),
         ChangeNotifierProvider(
           create: (_) => AuthProvider(),
+        ),
+        ChangeNotifierProvider(
+          lazy: false,
+          create: (_) => OrderProvider(),
         ),
       ],
       child: const FashionStoreApp(),
@@ -43,7 +50,7 @@ class FashionStoreApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'MODE Fashion Store',
       theme: AppTheme.lightTheme,
-      home: const HomeScreen(),
+      home: const SplashScreen(),
     );
   }
 }

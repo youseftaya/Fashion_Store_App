@@ -1,13 +1,212 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../providers/auth_provider.dart';
-import 'login_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+import '../widgets/profile_header.dart';
+import '../widgets/profile_menu_tile.dart';
+import '../widgets/profile_section_title.dart';
+import '../widgets/profile_photo_options.dart';
+
+import 'login_screen.dart';
+import 'saved_screen.dart';
+import 'my_orders_screen.dart';
+
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  static const String _photoKey = 'mode_profile_photo';
+
+  final ImagePicker _picker = ImagePicker();
+
+  String? _profileImage;
+  bool _isLoadingImage = true;
+  bool _isPickingImage = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileImage();
+  }
+
+  Future<void> _loadProfileImage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedImage = prefs.getString(_photoKey);
+
+      if (!mounted) return;
+
+      setState(() {
+        _profileImage = savedImage;
+        _isLoadingImage = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingImage = false);
+    }
+  }
+
+  Future<void> _pickProfileImage() async {
+    if (_isPickingImage) return;
+
+    try {
+      setState(() => _isPickingImage = true);
+
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 600,
+      );
+
+      if (pickedFile == null) return;
+
+      final imageBytes = await pickedFile.readAsBytes();
+      final encodedImage = base64Encode(imageBytes);
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_photoKey, encodedImage);
+
+      if (!mounted) return;
+
+      setState(() => _profileImage = encodedImage);
+
+      _showMessage('Profile photo updated successfully.');
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage('Could not select image. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isPickingImage = false);
+      }
+    }
+  }
+
+  Future<void> _removeProfileImage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_photoKey);
+
+      if (!mounted) return;
+
+      setState(() => _profileImage = null);
+      _showMessage('Profile photo removed.');
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage('Could not remove profile photo.');
+    }
+  }
+
+  void _showPhotoOptions() {
+    showProfilePhotoOptions(
+      context: context,
+      hasPhoto: _profileImage != null,
+      onChoose: _pickProfileImage,
+      onRemove: _removeProfileImage,
+    );
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  void _openMyOrders() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const MyOrdersScreen(),
+      ),
+    );
+  }
+
+  void _openFavorites() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const SavedScreen(),
+      ),
+    );
+  }
+
+  Future<void> _handleAuth(bool isLoggedIn) async {
+    if (!isLoggedIn) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const LoginScreen(),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await context.read<AuthProvider>().logout();
+
+      if (!mounted) return;
+      _showMessage('Logged out successfully.');
+    } catch (e) {
+      if (!mounted) return;
+      _showMessage('Could not log out: $e');
+    }
+  }
+
+  Widget _buildProfileImage() {
+    if (_isLoadingImage) {
+      return Container(
+        color: AppColors.lightGrey,
+        child: const Center(
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.primary,
+          ),
+        ),
+      );
+    }
+
+    if (_profileImage != null) {
+      try {
+        return Image.memory(
+          base64Decode(_profileImage!),
+          fit: BoxFit.cover,
+          width: 112,
+          height: 112,
+          errorBuilder: (_, _, _) => _defaultProfileImage(),
+        );
+      } catch (_) {
+        return _defaultProfileImage();
+      }
+    }
+
+    return _defaultProfileImage();
+  }
+
+  Widget _defaultProfileImage() {
+    return Container(
+      color: AppColors.lightGrey,
+      child: const Icon(
+        Icons.person_outline,
+        size: 52,
+        color: AppColors.primary,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +214,7 @@ class ProfileScreen extends StatelessWidget {
     final user = auth.currentUser;
 
     final isLoggedIn = user != null;
+
     final name = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!.trim()
         : 'MODE Customer';
@@ -35,202 +235,69 @@ class ProfileScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 12),
-
-              // Profile header
-              Center(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: AppColors.lightGrey,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.secondary.withValues(
-                            alpha: 0.2,
-                          ),
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.person_outline,
-                        size: 48,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    Text(
-                      isLoggedIn ? name : 'Welcome to MODE',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.sectionTitle.copyWith(
-                        fontSize: 20,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    Text(
-                      isLoggedIn
-                          ? user.email ?? ''
-                          : 'Sign in to manage your account',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.secondary,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    SizedBox(
-                      width: 180,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: auth.isLoading
-                            ? null
-                            : () async {
-                                if (!isLoggedIn) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const LoginScreen(),
-                                    ),
-                                  );
-                                  return;
-                                }
-
-                                try {
-                                  await context
-                                      .read<AuthProvider>()
-                                      .logout();
-
-                                  if (!context.mounted) return;
-
-                                  ScaffoldMessenger.of(context)
-                                    ..hideCurrentSnackBar()
-                                    ..showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Logged out successfully.',
-                                        ),
-                                        behavior:
-                                            SnackBarBehavior.floating,
-                                      ),
-                                    );
-                                } catch (e) {
-                                  if (!context.mounted) return;
-
-                                  ScaffoldMessenger.of(context)
-                                    ..hideCurrentSnackBar()
-                                    ..showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Could not log out: $e',
-                                        ),
-                                        behavior:
-                                            SnackBarBehavior.floating,
-                                      ),
-                                    );
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.white,
-                          disabledBackgroundColor:
-                              AppColors.secondary,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: auth.isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.white,
-                                ),
-                              )
-                            : Text(
-                                isLoggedIn ? 'LOG OUT' : 'SIGN IN',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  letterSpacing: 1.3,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
+              ProfileHeader(
+                name: name,
+                email: user?.email,
+                isLoggedIn: isLoggedIn,
+                isLoading: auth.isLoading,
+                isPickingImage: _isPickingImage,
+                profileImage: _buildProfileImage(),
+                onPhotoTap: _showPhotoOptions,
+                onAuthTap: () => _handleAuth(isLoggedIn),
               ),
 
-              const SizedBox(height: 36),
+              const SizedBox(height: 32),
 
-              Text(
-                'MY ACCOUNT',
-                style: AppTextStyles.sectionTitle.copyWith(
-                  fontSize: 13,
-                  letterSpacing: 1.3,
-                ),
-              ),
-              const SizedBox(height: 12),
+              const ProfileSectionTitle(title: 'MY ACCOUNT'),
 
-              _ProfileMenuTile(
+              ProfileMenuTile(
                 icon: Icons.shopping_bag_outlined,
                 title: 'My Orders',
                 subtitle: 'View your order history',
-                onTap: () => _showComingSoon(context, 'My Orders'),
+                onTap: _openMyOrders,
               ),
-              _ProfileMenuTile(
+
+              ProfileMenuTile(
                 icon: Icons.favorite_border,
                 title: 'My Favorites',
                 subtitle: 'Your saved products',
-                onTap: () => _showComingSoon(context, 'My Favorites'),
+                onTap: _openFavorites,
               ),
-              _ProfileMenuTile(
+
+              ProfileMenuTile(
                 icon: Icons.location_on_outlined,
                 title: 'My Addresses',
                 subtitle: 'Manage delivery addresses',
-                onTap: () => _showComingSoon(context, 'My Addresses'),
+                onTap: () => _showComingSoon('My Addresses'),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
 
-              Text(
-                'PREFERENCES',
-                style: AppTextStyles.sectionTitle.copyWith(
-                  fontSize: 13,
-                  letterSpacing: 1.3,
-                ),
-              ),
-              const SizedBox(height: 12),
+              const ProfileSectionTitle(title: 'PREFERENCES'),
 
-              _ProfileMenuTile(
+              ProfileMenuTile(
                 icon: Icons.notifications_none,
                 title: 'Notifications',
                 subtitle: 'Manage your notifications',
-                onTap: () =>
-                    _showComingSoon(context, 'Notifications'),
+                onTap: () => _showComingSoon('Notifications'),
               ),
-              _ProfileMenuTile(
+
+              ProfileMenuTile(
                 icon: Icons.help_outline,
                 title: 'Help & Support',
                 subtitle: 'Get help with your shopping',
-                onTap: () =>
-                    _showComingSoon(context, 'Help & Support'),
+                onTap: () => _showComingSoon('Help & Support'),
               ),
-              _ProfileMenuTile(
+
+              ProfileMenuTile(
                 icon: Icons.info_outline,
                 title: 'About MODE',
                 subtitle: 'Learn more about our store',
-                onTap: () => _showComingSoon(context, 'About MODE'),
+                onTap: () => _showComingSoon('About MODE'),
               ),
 
               const SizedBox(height: 24),
@@ -245,7 +312,6 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -253,10 +319,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  static void _showComingSoon(
-    BuildContext context,
-    String feature,
-  ) {
+  void _showComingSoon(String feature) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -265,75 +328,5 @@ class ProfileScreen extends StatelessWidget {
           behavior: SnackBarBehavior.floating,
         ),
       );
-  }
-}
-
-class _ProfileMenuTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _ProfileMenuTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.lightGrey,
-        ),
-      ),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 6,
-        ),
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: AppColors.lightGrey,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(
-            icon,
-            color: AppColors.primary,
-            size: 21,
-          ),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            subtitle,
-            style: const TextStyle(
-              color: AppColors.secondary,
-              fontSize: 11,
-            ),
-          ),
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          size: 14,
-          color: AppColors.secondary,
-        ),
-      ),
-    );
   }
 }

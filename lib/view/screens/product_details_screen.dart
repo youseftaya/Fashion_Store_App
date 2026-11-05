@@ -5,9 +5,15 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/models/product_model.dart';
 import '../../providers/cart_provider.dart';
-import '../../providers/product_provider.dart';
 
-class ProductDetailsScreen extends StatelessWidget {
+import '../widgets/product_details_header.dart';
+import '../widgets/product_image_view.dart';
+import '../widgets/product_size_selector.dart';
+import '../widgets/product_color_selector.dart';
+import '../widgets/product_quantity_selector.dart';
+import '../widgets/product_add_to_cart_button.dart';
+
+class ProductDetailsScreen extends StatefulWidget {
   final ProductModel product;
 
   const ProductDetailsScreen({
@@ -16,80 +22,77 @@ class ProductDetailsScreen extends StatelessWidget {
   });
 
   @override
+  State<ProductDetailsScreen> createState() =>
+      _ProductDetailsScreenState();
+}
+
+class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
+  final List<String> _sizes = ['S', 'M', 'L', 'XL'];
+
+  final List<Color> _colors = [
+    Colors.black,
+    Colors.white,
+    Colors.brown,
+    Colors.grey,
+    Colors.blue,
+  ];
+
+  String? _selectedSize;
+  Color _selectedColor = Colors.black;
+  int _quantity = 1;
+
+  String _colorName(Color color) {
+    if (color == Colors.black) return 'Black';
+    if (color == Colors.white) return 'White';
+    if (color == Colors.brown) return 'Brown';
+    if (color == Colors.grey) return 'Grey';
+    if (color == Colors.blue) return 'Blue';
+    return 'Black';
+  }
+
+  void _addToCart() {
+    if (_selectedSize == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a size first.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    context.read<CartProvider>().addToCart(
+          widget.product,
+          size: _selectedSize!,
+          color: _colorName(_selectedColor),
+          quantity: _quantity,
+        );
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('${widget.product.name} added to cart.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.primary,
+        ),
+      );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final product = widget.product;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _CircleButton(
-                      icon: Icons.arrow_back,
-                      onTap: () => Navigator.pop(context),
-                    ),
-                    Text(
-                      'PRODUCT DETAILS',
-                      style: AppTextStyles.sectionTitle.copyWith(
-                        fontSize: 13,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    Consumer<ProductProvider>(
-                      builder: (context, provider, child) {
-                        final favorite =
-                            provider.isFavorite(product.id);
-
-                        return _CircleButton(
-                          icon: favorite
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          iconColor: favorite
-                              ? Colors.red
-                              : AppColors.black,
-                          onTap: () {
-                            provider.toggleFavorite(product.id);
-                          },
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
+              child: ProductDetailsHeader(product: product),
             ),
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: AspectRatio(
-                    aspectRatio: 0.82,
-                    child: Image.network(
-                      product.imageUrl,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
-                          ),
-                        );
-                      },
-                      errorBuilder: (_, __, ___) => const Center(
-                        child: Icon(
-                          Icons.image_not_supported_outlined,
-                          size: 48,
-                          color: AppColors.secondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              child: ProductImageView(product: product),
             ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
@@ -111,6 +114,26 @@ class ProductDetailsScreen extends StatelessWidget {
                       fontSize: 24,
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.star,
+                        color: Colors.amber,
+                        size: 19,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        product.rating > 0
+                            ? product.rating.toStringAsFixed(1)
+                            : 'Not rated',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     '\$${product.price.toStringAsFixed(2)}',
@@ -126,87 +149,52 @@ class ProductDetailsScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'Designed for everyday style, this piece combines '
-                    'a clean look with versatile styling. An essential '
-                    'addition to your wardrobe.',
-                    style: TextStyle(
+                  Text(
+                    product.description.trim().isNotEmpty
+                        ? product.description
+                        : 'A stylish addition to your wardrobe.',
+                    style: const TextStyle(
                       color: AppColors.secondary,
                       fontSize: 14,
                       height: 1.7,
                     ),
                   ),
                   const SizedBox(height: 28),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        context.read<CartProvider>().addToCart(product);
-
-                        ScaffoldMessenger.of(context)
-                          ..hideCurrentSnackBar()
-                          ..showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                '${product.name} added to cart.',
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: AppColors.primary,
-                            ),
-                          );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'ADD TO CART',
-                        style: TextStyle(
-                          fontSize: 13,
-                          letterSpacing: 1.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                  ProductSizeSelector(
+                    sizes: _sizes,
+                    selectedSize: _selectedSize,
+                    onSizeSelected: (size) {
+                      setState(() => _selectedSize = size);
+                    },
+                  ),
+                  const SizedBox(height: 28),
+                  ProductColorSelector(
+                    colors: _colors,
+                    selectedColor: _selectedColor,
+                    onColorSelected: (color) {
+                      setState(() => _selectedColor = color);
+                    },
+                  ),
+                  const SizedBox(height: 28),
+                  ProductQuantitySelector(
+                    quantity: _quantity,
+                    onDecrease: () {
+                      if (_quantity > 1) {
+                        setState(() => _quantity--);
+                      }
+                    },
+                    onIncrease: () {
+                      setState(() => _quantity++);
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  ProductAddToCartButton(
+                    onPressed: _addToCart,
                   ),
                 ]),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CircleButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  final Color iconColor;
-
-  const _CircleButton({
-    required this.icon,
-    required this.onTap,
-    this.iconColor = AppColors.black,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.lightGrey,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: SizedBox(
-          width: 42,
-          height: 42,
-          child: Icon(icon, color: iconColor, size: 20),
         ),
       ),
     );

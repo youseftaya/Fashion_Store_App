@@ -13,6 +13,7 @@ import '../widgets/promo_banner.dart';
 import '../widgets/search_bar_widget.dart';
 import 'cart_screen.dart';
 import 'profile_screen.dart';
+import 'saved_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,7 +25,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedCategory = 'All';
   String _searchQuery = '';
-  bool _showFavoritesOnly = false;
   int _selectedNavIndex = 0;
 
   late final ScrollController _scrollController;
@@ -54,26 +54,32 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  bool _matchesCategory(
-    String selectedCategory,
-    String productCategory,
-  ) {
-    if (selectedCategory == 'All') {
-      return true;
-    }
-
-    return selectedCategory == productCategory;
-  }
-
   void _selectCategory(String category) {
+    if (_selectedCategory == category) return;
+
     setState(() {
       _selectedCategory = category;
-      _showFavoritesOnly = false;
       _selectedNavIndex = 0;
     });
+
+    context.read<ProductProvider>().selectCategory(category);
+
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
   }
 
   void _selectNavigation(int index) {
+    if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const SavedScreen(),
+        ),
+      );
+      return;
+    }
+
     if (index == 2) {
       Navigator.push(
         context,
@@ -95,13 +101,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     setState(() {
-      _selectedNavIndex = index;
-      _showFavoritesOnly = index == 1;
-
-      if (index == 0) {
-        _selectedCategory = 'All';
-      }
+      _selectedNavIndex = 0;
     });
+
+    _selectCategory('All');
+
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
   }
 
   @override
@@ -110,36 +117,10 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, productProvider, child) {
         final allProducts = productProvider.products;
 
-        final categories = <String>[
-          'All',
-          ...allProducts
-              .map((product) => product.category)
-              .where((category) => category.trim().isNotEmpty)
-              .toSet()
-              .toList()
-            ..sort(),
-        ];
-
-        if (!categories.contains(_selectedCategory)) {
-          _selectedCategory = 'All';
-        }
-
         final filteredProducts = allProducts.where((product) {
-          final matchesCategory = _matchesCategory(
-            _selectedCategory,
-            product.category,
-          );
-
-          final matchesSearch = product.name
+          return product.name
               .toLowerCase()
               .contains(_searchQuery.trim().toLowerCase());
-
-          final matchesFavorites = !_showFavoritesOnly ||
-              productProvider.isFavorite(product.id);
-
-          return matchesCategory &&
-              matchesSearch &&
-              matchesFavorites;
         }).toList();
 
         return Scaffold(
@@ -184,25 +165,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  if (!_showFavoritesOnly) ...[
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
-                        child: CategoryList(
-                          categories: categories,
-                          selectedCategory: _selectedCategory,
-                          onCategorySelected: _selectCategory,
-                        ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+                      child: CategoryList(
+                        categories: productProvider.categories,
+                        selectedCategory: _selectedCategory,
+                        onCategorySelected: _selectCategory,
                       ),
                     ),
+                  ),
 
-                    const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(20, 26, 20, 0),
-                        child: PromoBanner(),
-                      ),
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(20, 26, 20, 0),
+                      child: PromoBanner(),
                     ),
-                  ],
+                  ),
 
                   SliverToBoxAdapter(
                     child: Padding(
@@ -212,11 +191,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              _showFavoritesOnly
-                                  ? 'SAVED ITEMS'
-                                  : _selectedCategory == 'All'
-                                      ? 'FEATURED PRODUCTS'
-                                      : _selectedCategory.toUpperCase(),
+                              _selectedCategory == 'All'
+                                  ? 'FEATURED PRODUCTS'
+                                  : _selectedCategory.toUpperCase(),
                               style: AppTextStyles.sectionTitle.copyWith(
                                 fontSize: 17,
                                 letterSpacing: 0.3,
@@ -278,8 +255,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     SliverFillRemaining(
                       hasScrollBody: false,
                       child: EmptyState(
-                        isFavorites: _showFavoritesOnly,
-                        onExplore: () => _selectNavigation(0),
+                        isFavorites: false,
+                        onExplore: () {},
                       ),
                     )
                   else
@@ -331,7 +308,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Center(
                           child: TextButton(
                             onPressed: productProvider.loadMoreProducts,
-                            child: const Text('Retry loading more products'),
+                            child: const Text(
+                              'Retry loading more products',
+                            ),
                           ),
                         ),
                       ),

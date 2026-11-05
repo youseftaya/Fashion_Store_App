@@ -5,6 +5,10 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../providers/auth_provider.dart';
+import '../widgets/login_header.dart';
+import '../widgets/auth_text_field.dart';
+import '../widgets/auth_primary_button.dart';
+import '../widgets/auth_bottom_prompt.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -61,7 +65,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       _showMessage('Welcome back! You are signed in.');
-
       Navigator.of(context).popUntil((route) => route.isFirst);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
@@ -93,6 +96,26 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       _showMessage('Could not send reset email. Please try again.');
     }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  void _openRegisterScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const RegisterScreen(),
+      ),
+    );
   }
 
   @override
@@ -129,55 +152,17 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                  child: Column(
-                    children: [
-                      Text(
-                        'MODE',
-                        style: AppTextStyles.sectionTitle.copyWith(
-                          fontSize: 34,
-                          letterSpacing: 6,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'WELCOME BACK',
-                        style: TextStyle(
-                          color: AppColors.secondary,
-                          fontSize: 12,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Sign in to continue shopping.',
-                        style: TextStyle(
-                          color: AppColors.secondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                const LoginHeader(),
                 const SizedBox(height: 42),
-                const Text(
-                  'Email Address',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
+
+                AuthTextField(
+                  label: 'Email Address',
+                  hint: 'Enter your email',
+                  icon: Icons.email_outlined,
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.email],
-                  decoration: _inputDecoration(
-                    hint: 'Enter your email',
-                    icon: Icons.email_outlined,
-                  ),
                   validator: (value) {
                     final email = value?.trim() ?? '';
 
@@ -194,37 +179,29 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
+
                 const SizedBox(height: 24),
-                const Text(
-                  'Password',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
+
+                AuthTextField(
+                  label: 'Password',
+                  hint: 'Enter your password',
+                  icon: Icons.lock_outline,
                   controller: _passwordController,
-                  obscureText: _obscurePassword,
                   textInputAction: TextInputAction.done,
                   autofillHints: const [AutofillHints.password],
-                  decoration: _inputDecoration(
-                    hint: 'Enter your password',
-                    icon: Icons.lock_outline,
-                  ).copyWith(
-                    suffixIcon: IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        color: AppColors.secondary,
-                        size: 20,
-                      ),
+                  obscureText: _obscurePassword,
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: AppColors.secondary,
+                      size: 20,
                     ),
                   ),
                   validator: (value) {
@@ -233,11 +210,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     }
                     return null;
                   },
-                  onFieldSubmitted: (_) {
+                  onSubmitted: () {
                     if (!auth.isLoading) _submitForm();
                   },
                 ),
+
                 const SizedBox(height: 12),
+
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -252,99 +231,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: auth.isLoading ? null : _submitForm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: auth.isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'SIGN IN',
-                            style: TextStyle(
-                              fontSize: 12,
-                              letterSpacing: 1.5,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                  ),
+
+                AuthPrimaryButton(
+                  isLoading: auth.isLoading,
+                  onPressed: _submitForm,
                 ),
+
                 const SizedBox(height: 28),
-                Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      child: Text(
-                        'NEW TO MODE?',
-                        style: TextStyle(
-                          color: AppColors.secondary,
-                          fontSize: 10,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                    const Expanded(child: Divider()),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton(
-                    onPressed: auth.isLoading
-                        ? null
-                        : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const RegisterScreen(),
-                              ),
-                            );
-                          },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'CREATE ACCOUNT',
-                      style: TextStyle(
-                        fontSize: 12,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Center(
-                  child: Text(
-                    'STYLE YOUR WAY',
-                    style: TextStyle(
-                      color: AppColors.secondary,
-                      fontSize: 10,
-                      letterSpacing: 2,
-                    ),
-                  ),
+
+                AuthBottomPrompt(
+                  onPressed: auth.isLoading ? () {} : _openRegisterScreen,
                 ),
               ],
             ),
@@ -352,63 +250,5 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
-  }
-
-  InputDecoration _inputDecoration({
-    required String hint,
-    required IconData icon,
-  }) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(
-        color: AppColors.secondary,
-        fontSize: 13,
-      ),
-      prefixIcon: Icon(
-        icon,
-        color: AppColors.secondary,
-        size: 20,
-      ),
-      filled: true,
-      fillColor: AppColors.white,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 17,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.lightGrey),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.lightGrey),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(
-          color: AppColors.primary,
-          width: 1.5,
-        ),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red),
-      ),
-    );
-  }
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
   }
 }
