@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../data/models/order_model.dart';
+import '../../features/orders/domain/entities/order.dart';
 import '../screens/order_details_screen.dart';
 
 class OrderCard extends StatelessWidget {
-  final OrderModel order;
+  final Order order;
   final VoidCallback? onCancel;
 
   const OrderCard({
@@ -83,7 +83,7 @@ class OrderCard extends StatelessWidget {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(7),
                             child: Image.network(
-                              item.product.imageUrl,
+                              item.productImage,
                               width: 52,
                               height: 60,
                               fit: BoxFit.cover,
@@ -106,7 +106,7 @@ class OrderCard extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  item.product.name,
+                                  item.productName,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: AppTextStyles.productName,
@@ -204,7 +204,6 @@ class OrderCard extends StatelessWidget {
               ),
             ),
           ),
-
           if (onCancel != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),

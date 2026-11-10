@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../data/models/order_model.dart';
+import '../../features/orders/domain/entities/order.dart';
 import 'order_section_card.dart';
 
 class OrderProductsSection extends StatelessWidget {
-  final OrderModel order;
+  final Order order;
 
   const OrderProductsSection({
     super.key,
@@ -37,7 +37,7 @@ class OrderProductsSection extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      item.product.imageUrl,
+                      item.productImage,
                       width: 72,
                       height: 82,
                       fit: BoxFit.cover,
@@ -59,7 +59,7 @@ class OrderProductsSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.product.name,
+                          item.productName,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.productName,

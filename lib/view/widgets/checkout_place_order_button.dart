@@ -4,7 +4,7 @@ import '../../../core/theme/app_colors.dart';
 
 class CheckoutPlaceOrderButton extends StatelessWidget {
   final bool isLoading;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const CheckoutPlaceOrderButton({
     super.key,

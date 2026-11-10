@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../data/models/cart_item_model.dart';
+import '../../../features/cart/domain/entities/cart_item.dart';
 
 class CheckoutOrderSummary extends StatelessWidget {
-  final List<CartItemModel> items;
+  final List<CartItem> items;
   final double totalPrice;
 
   const CheckoutOrderSummary({
@@ -54,7 +54,7 @@ class CheckoutOrderSummary extends StatelessWidget {
 }
 
 class _CheckoutOrderItem extends StatelessWidget {
-  final CartItemModel item;
+  final CartItem item;
 
   const _CheckoutOrderItem({
     required this.item,

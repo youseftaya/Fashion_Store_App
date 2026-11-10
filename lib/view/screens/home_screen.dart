@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../providers/product_provider.dart';
+import '../../features/products/presentation/cubit/products_cubit.dart';
+import '../../features/products/presentation/cubit/products_state.dart';
+
 import '../widgets/category_list.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/home_bottom_nav.dart';
@@ -11,6 +13,7 @@ import '../widgets/home_header.dart';
 import '../widgets/product_card.dart';
 import '../widgets/promo_banner.dart';
 import '../widgets/search_bar_widget.dart';
+
 import 'cart_screen.dart';
 import 'profile_screen.dart';
 import 'saved_screen.dart';
@@ -23,7 +26,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _selectedCategory = 'All';
   String _searchQuery = '';
   int _selectedNavIndex = 0;
 
@@ -41,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_scrollController.hasClients) return;
 
     if (_scrollController.position.extentAfter < 500) {
-      context.read<ProductProvider>().loadMoreProducts();
+      context.read<ProductsCubit>().loadMoreProducts();
     }
   }
 
@@ -55,14 +57,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _selectCategory(String category) {
-    if (_selectedCategory == category) return;
+    context.read<ProductsCubit>().selectCategory(category);
 
     setState(() {
-      _selectedCategory = category;
       _selectedNavIndex = 0;
     });
-
-    context.read<ProductProvider>().selectCategory(category);
 
     if (_scrollController.hasClients) {
       _scrollController.jumpTo(0);
@@ -105,17 +104,13 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     _selectCategory('All');
-
-    if (_scrollController.hasClients) {
-      _scrollController.jumpTo(0);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ProductProvider>(
-      builder: (context, productProvider, child) {
-        final allProducts = productProvider.products;
+    return BlocBuilder<ProductsCubit, ProductsState>(
+      builder: (context, state) {
+        final allProducts = state.products;
 
         final filteredProducts = allProducts.where((product) {
           return product.name
@@ -130,7 +125,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: RefreshIndicator(
               color: Theme.of(context).colorScheme.primary,
               backgroundColor: AppColors.background,
-              onRefresh: productProvider.refreshProducts,
+              onRefresh: () {
+                return context
+                    .read<ProductsCubit>()
+                    .refreshProducts();
+              },
               child: CustomScrollView(
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -169,8 +168,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
                       child: CategoryList(
-                        categories: productProvider.categories,
-                        selectedCategory: _selectedCategory,
+                        categories: state.categories,
+                        selectedCategory: state.selectedCategory,
                         onCategorySelected: _selectCategory,
                       ),
                     ),
@@ -191,9 +190,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              _selectedCategory == 'All'
+                              state.selectedCategory == 'All'
                                   ? 'FEATURED PRODUCTS'
-                                  : _selectedCategory.toUpperCase(),
+                                  : state.selectedCategory.toUpperCase(),
                               style: AppTextStyles.sectionTitle.copyWith(
                                 fontSize: 17,
                                 letterSpacing: 0.3,
@@ -214,14 +213,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  if (productProvider.isLoading && allProducts.isEmpty)
+                  if (state.isLoading && allProducts.isEmpty)
                     const SliverFillRemaining(
                       hasScrollBody: false,
                       child: Center(
                         child: CircularProgressIndicator(),
                       ),
                     )
-                  else if (productProvider.errorMessage != null &&
+                  else if (state.errorMessage != null &&
                       allProducts.isEmpty)
                     SliverFillRemaining(
                       hasScrollBody: false,
@@ -238,12 +237,16 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                productProvider.errorMessage!,
+                                state.errorMessage!,
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 16),
                               ElevatedButton(
-                                onPressed: productProvider.loadProducts,
+                                onPressed: () {
+                                  context
+                                      .read<ProductsCubit>()
+                                      .loadProducts();
+                                },
                                 child: const Text('Try Again'),
                               ),
                             ],
@@ -269,10 +272,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             return ProductCard(
                               product: product,
-                              isFavorite:
-                                  productProvider.isFavorite(product.id),
+                              isFavorite: state.favoriteProductIds
+                                  .contains(product.id),
                               onFavoriteTap: () {
-                                productProvider.toggleFavorite(product.id);
+                                context
+                                    .read<ProductsCubit>()
+                                    .toggleFavorite(product.id);
                               },
                             );
                           },
@@ -288,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                  if (productProvider.isLoadingMore)
+                  if (state.isLoadingMore)
                     const SliverToBoxAdapter(
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 24),
@@ -297,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     )
-                  else if (productProvider.loadMoreError != null)
+                  else if (state.loadMoreError != null)
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.only(
@@ -307,7 +312,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         child: Center(
                           child: TextButton(
-                            onPressed: productProvider.loadMoreProducts,
+                            onPressed: () {
+                              context
+                                  .read<ProductsCubit>()
+                                  .loadMoreProducts();
+                            },
                             child: const Text(
                               'Retry loading more products',
                             ),

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/models/product_model.dart';
-import '../../providers/product_provider.dart';
+import '../../features/products/presentation/cubit/products_cubit.dart';
+import '../../features/products/presentation/cubit/products_state.dart';
 import 'circle_icon_button.dart';
 
 class ProductDetailsHeader extends StatelessWidget {
@@ -33,14 +34,19 @@ class ProductDetailsHeader extends StatelessWidget {
               letterSpacing: 1.5,
             ),
           ),
-          Consumer<ProductProvider>(
-            builder: (context, provider, child) {
-              final favorite = provider.isFavorite(product.id);
+          BlocBuilder<ProductsCubit, ProductsState>(
+            builder: (context, state) {
+              final favorite =
+                  state.favoriteProductIds.contains(product.id);
 
               return CircleIconButton(
                 icon: favorite ? Icons.favorite : Icons.favorite_border,
                 iconColor: favorite ? Colors.red : AppColors.black,
-                onTap: () => provider.toggleFavorite(product.id),
+                onTap: () {
+                  context
+                      .read<ProductsCubit>()
+                      .toggleFavorite(product.id);
+                },
               );
             },
           ),

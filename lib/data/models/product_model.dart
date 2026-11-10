@@ -1,22 +1,15 @@
-class ProductModel {
-  final String id;
-  final String name;
-  final String category;
-  final String imageUrl;
-  final String description;
-  final double price;
-  final double discountPercentage;
-  final double rating;
+import '../../features/products/domain/entities/product.dart';
 
+class ProductModel extends Product {
   const ProductModel({
-    required this.id,
-    required this.name,
-    required this.category,
-    required this.imageUrl,
-    this.description = '',
-    required this.price,
-    this.discountPercentage = 0,
-    this.rating = 0,
+    required super.id,
+    required super.name,
+    required super.category,
+    required super.imageUrl,
+    super.description = '',
+    required super.price,
+    super.discountPercentage = 0,
+    super.rating = 0,
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
@@ -41,8 +34,7 @@ class ProductModel {
 
     return ProductModel(
       id: json['id'].toString(),
-      name: (json['title'] ?? json['name'] ?? 'Unnamed Product')
-          .toString(),
+      name: (json['title'] ?? json['name'] ?? 'Unnamed Product').toString(),
       category: category,
       imageUrl: imageUrl,
       description: json['description']?.toString() ?? '',
