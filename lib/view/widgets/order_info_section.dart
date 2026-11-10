@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../data/models/order_model.dart';
+import '../../features/orders/domain/entities/order.dart';
 import 'order_section_card.dart';
 import 'order_info_row.dart';
 
 class OrderInfoSection extends StatelessWidget {
-  final OrderModel order;
+  final Order order;
 
   const OrderInfoSection({
     super.key,

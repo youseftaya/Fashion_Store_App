@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../providers/order_provider.dart';
-import '../../data/models/order_model.dart';
+import '../../features/orders/domain/entities/order.dart';
+import '../../features/orders/presentation/cubit/order_cubit.dart';
+import '../../features/orders/presentation/cubit/order_state.dart';
 import '../widgets/orders_filter_list.dart';
 import '../widgets/orders_empty_state.dart';
 import '../widgets/order_card.dart';
@@ -19,10 +20,7 @@ class MyOrdersScreen extends StatefulWidget {
 class _MyOrdersScreenState extends State<MyOrdersScreen> {
   String _selectedStatus = 'All';
 
-  Future<void> _confirmCancelOrder(
-    OrderProvider provider,
-    OrderModel order,
-  ) async {
+  Future<void> _confirmCancelOrder(Order order) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -49,31 +47,25 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    try {
-      final success = await provider.cancelOrder(order.id);
+    final cubit = context.read<OrderCubit>();
+    final success = await cubit.cancelOrderById(order.id);
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success
-                ? 'Order cancelled successfully.'
-                : 'This order cannot be cancelled.',
-          ),
-          backgroundColor: success ? Colors.green : Colors.red,
+    final hasError = cubit.state.hasError;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? 'Order cancelled successfully.'
+              : hasError
+                  ? 'Failed to cancel order. Please try again.'
+                  : 'This order cannot be cancelled.',
         ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to cancel order. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
   }
 
   @override
@@ -100,9 +92,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
           ),
         ),
       ),
-      body: Consumer<OrderProvider>(
-        builder: (context, orderProvider, child) {
-          if (orderProvider.isLoading) {
+      body: BlocBuilder<OrderCubit, OrderState>(
+        builder: (context, state) {
+          if (state.isLoading && state.orders.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(
                 color: AppColors.primary,
@@ -110,7 +102,37 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
             );
           }
 
-          final allOrders = orderProvider.orders;
+          if (state.hasError && state.orders.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 45,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      state.errorMessage ?? 'Something went wrong.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        context.read<OrderCubit>().loadOrders();
+                      },
+                      child: const Text('Try Again'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final allOrders = state.orders;
 
           if (allOrders.isEmpty) {
             return const OrdersEmptyState(
@@ -120,13 +142,13 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
           }
 
           final filteredOrders =
-              orderProvider.getOrdersByStatus(_selectedStatus);
+              state.getOrdersByStatus(_selectedStatus);
 
           return Column(
             children: [
               OrdersFilterList(
                 selectedStatus: _selectedStatus,
-                provider: orderProvider,
+                state: state,
                 onStatusSelected: (status) {
                   setState(() {
                     _selectedStatus = status;
@@ -149,11 +171,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
 
                           return OrderCard(
                             order: order,
-                            onCancel: orderProvider.canCancelOrder(order)
-                                ? () => _confirmCancelOrder(
-                                      orderProvider,
-                                      order,
-                                    )
+                            onCancel: order.canBeCancelled
+                                ? () => _confirmCancelOrder(order)
                                 : null,
                           );
                         },

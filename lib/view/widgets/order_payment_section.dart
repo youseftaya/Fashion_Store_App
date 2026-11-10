@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../data/models/order_model.dart';
+import '../../features/orders/domain/entities/order.dart';
 import 'order_section_card.dart';
 
 class OrderPaymentSection extends StatelessWidget {
-  final OrderModel order;
+  final Order order;
 
   const OrderPaymentSection({
     super.key,

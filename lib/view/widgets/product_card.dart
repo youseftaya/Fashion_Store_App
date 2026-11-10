@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../features/products/domain/entities/product.dart';
 import '../../data/models/product_model.dart';
 import '../screens/product_details_screen.dart';
 
 class ProductCard extends StatelessWidget {
-  final ProductModel product;
+  final Product product;
   final bool isFavorite;
   final VoidCallback onFavoriteTap;
 
@@ -18,10 +19,21 @@ class ProductCard extends StatelessWidget {
   });
 
   void _openDetails(BuildContext context) {
+    final productModel = ProductModel(
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      imageUrl: product.imageUrl,
+      description: product.description,
+      price: product.price,
+      discountPercentage: product.discountPercentage,
+      rating: product.rating,
+    );
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ProductDetailsScreen(product: product),
+        builder: (_) => ProductDetailsScreen(product: productModel),
       ),
     );
   }

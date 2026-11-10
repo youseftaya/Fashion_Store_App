@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../providers/cart_provider.dart';
+import '../../features/cart/presentation/cubit/cart_cubit.dart';
+import '../../features/cart/presentation/cubit/cart_state.dart';
 import 'checkout_screen.dart';
 
 class CartScreen extends StatelessWidget {
@@ -11,9 +12,10 @@ class CartScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<CartProvider>(
-      builder: (context, cart, child) {
-        final items = cart.items;
+    return BlocBuilder<CartCubit, CartState>(
+      builder: (context, state) {
+        final items = state.items;
+        final cartCubit = context.read<CartCubit>();
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -37,231 +39,241 @@ class CartScreen extends StatelessWidget {
               ),
             ),
           ),
-          body: items.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.shopping_bag_outlined,
-                          size: 64,
-                          color: AppColors.secondary,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'YOUR CART IS EMPTY',
-                          style: AppTextStyles.sectionTitle.copyWith(
-                            fontSize: 15,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Add some products to get started.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: AppColors.secondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        OutlinedButton.icon(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back),
-                          label: const Text('CONTINUE SHOPPING'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            side: const BorderSide(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+          body: state.status == CartStatus.loading
+              ? const Center(
+                  child: CircularProgressIndicator(),
                 )
-              : Column(
-                  children: [
-                    Expanded(
-                      child: ListView.separated(
-                        padding: const EdgeInsets.all(20),
-                        itemCount: items.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: 18),
-                        itemBuilder: (context, index) {
-                          final item = items[index];
-                          final product = item.product;
-
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Image.network(
-                                  product.imageUrl,
-                                  width: 100,
-                                  height: 125,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => Container(
-                                    width: 100,
-                                    height: 125,
-                                    color: AppColors.lightGrey,
-                                    child: const Icon(
-                                      Icons.image_not_supported_outlined,
-                                      color: AppColors.secondary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      product.category.toUpperCase(),
-                                      style: const TextStyle(
-                                        color: AppColors.secondary,
-                                        fontSize: 10,
-                                        letterSpacing: 1.2,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      product.name,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTextStyles.productName,
-                                    ),
-                                    const SizedBox(height: 7),
-                                    Text(
-                                      '\$${product.price.toStringAsFixed(2)}',
-                                      style: AppTextStyles.price,
-                                    ),
-                                    const SizedBox(height: 7),
-                                    Text(
-                                      'Size: ${item.size}',
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      'Color: ${item.color}',
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                    const SizedBox(height: 9),
-                                    Row(
-                                      children: [
-                                        _QuantityButton(
-                                          icon: Icons.remove,
-                                          onTap: () =>
-                                              cart.decreaseQuantity(item.id),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                          ),
-                                          child: Text(
-                                            '${item.quantity}',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                        _QuantityButton(
-                                          icon: Icons.add,
-                                          onTap: () =>
-                                              cart.increaseQuantity(item.id),
-                                        ),
-                                        const Spacer(),
-                                        IconButton(
-                                          tooltip: 'Remove item',
-                                          onPressed: () =>
-                                              cart.removeFromCart(item.id),
-                                          icon: const Icon(
-                                            Icons.delete_outline,
-                                            color: Colors.red,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        border: Border(
-                          top: BorderSide(color: AppColors.lightGrey),
-                        ),
-                      ),
-                      child: SafeArea(
-                        top: false,
+              : items.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'TOTAL',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    letterSpacing: 1.3,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  '\$${cart.totalPrice.toStringAsFixed(2)}',
-                                  style: AppTextStyles.price.copyWith(
-                                    fontSize: 20,
-                                  ),
-                                ),
-                              ],
+                            const Icon(
+                              Icons.shopping_bag_outlined,
+                              size: 64,
+                              color: AppColors.secondary,
                             ),
-                            const SizedBox(height: 18),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 52,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const CheckoutScreen(),
-                                    ),
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  foregroundColor: AppColors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'PROCEED TO CHECKOUT',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    letterSpacing: 1.2,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'YOUR CART IS EMPTY',
+                              style: AppTextStyles.sectionTitle.copyWith(
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Add some products to get started.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: AppColors.secondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            OutlinedButton.icon(
+                              onPressed: () => Navigator.pop(context),
+                              icon: const Icon(Icons.arrow_back),
+                              label: const Text('CONTINUE SHOPPING'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                side: const BorderSide(
+                                  color: AppColors.primary,
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
+                    )
+                  : Column(
+                      children: [
+                        Expanded(
+                          child: ListView.separated(
+                            padding: const EdgeInsets.all(20),
+                            itemCount: items.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 18),
+                            itemBuilder: (context, index) {
+                              final item = items[index];
+                              final product = item.product;
+
+                              return Row(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.network(
+                                      product.imageUrl,
+                                      width: 100,
+                                      height: 125,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => Container(
+                                        width: 100,
+                                        height: 125,
+                                        color: AppColors.lightGrey,
+                                        child: const Icon(
+                                          Icons.image_not_supported_outlined,
+                                          color: AppColors.secondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          product.category.toUpperCase(),
+                                          style: const TextStyle(
+                                            color: AppColors.secondary,
+                                            fontSize: 10,
+                                            letterSpacing: 1.2,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          product.name,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: AppTextStyles.productName,
+                                        ),
+                                        const SizedBox(height: 7),
+                                        Text(
+                                          '\$${product.price.toStringAsFixed(2)}',
+                                          style: AppTextStyles.price,
+                                        ),
+                                        const SizedBox(height: 7),
+                                        Text(
+                                          'Size: ${item.size}',
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          'Color: ${item.color}',
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                        const SizedBox(height: 9),
+                                        Row(
+                                          children: [
+                                            _QuantityButton(
+                                              icon: Icons.remove,
+                                              onTap: () =>
+                                                  cartCubit.decreaseQuantity(item),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 14,
+                                              ),
+                                              child: Text(
+                                                '${item.quantity}',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                            _QuantityButton(
+                                              icon: Icons.add,
+                                              onTap: () =>
+                                                  cartCubit.increaseQuantity(item),
+                                            ),
+                                            const Spacer(),
+                                            IconButton(
+                                              tooltip: 'Remove item',
+                                              onPressed: () =>
+                                                  cartCubit.removeItem(item.id),
+                                              icon: const Icon(
+                                                Icons.delete_outline,
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            border: Border(
+                              top: BorderSide(
+                                color: AppColors.lightGrey,
+                              ),
+                            ),
+                          ),
+                          child: SafeArea(
+                            top: false,
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'TOTAL',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        letterSpacing: 1.3,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      '\$${state.totalPrice.toStringAsFixed(2)}',
+                                      style: AppTextStyles.price.copyWith(
+                                        fontSize: 20,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 18),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 52,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const CheckoutScreen(),
+                                        ),
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: AppColors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'PROCEED TO CHECKOUT',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        letterSpacing: 1.2,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
         );
       },
     );

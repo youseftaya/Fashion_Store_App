@@ -1,33 +1,45 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../providers/order_provider.dart';
+import '../../features/orders/presentation/cubit/order_state.dart';
 
 class OrdersFilterList extends StatelessWidget {
   final String selectedStatus;
+  final OrderState state;
   final ValueChanged<String> onStatusSelected;
-  final OrderProvider provider;
 
   const OrdersFilterList({
     super.key,
     required this.selectedStatus,
+    required this.state,
     required this.onStatusSelected,
-    required this.provider,
   });
+
+  static const List<String> _statuses = [
+    'All',
+    'Pending',
+    'Confirmed',
+    'Shipped',
+    'Delivered',
+    'Cancelled',
+  ];
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 55,
+      height: 58,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 8,
+        ),
         scrollDirection: Axis.horizontal,
-        itemCount: OrderProvider.orderStatuses.length,
+        itemCount: _statuses.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          final status = OrderProvider.orderStatuses[index];
+          final status = _statuses[index];
           final isSelected = selectedStatus == status;
-          final count = provider.getOrderCountByStatus(status);
+          final count = state.getOrderCountByStatus(status);
 
           return ChoiceChip(
             label: Text('$status ($count)'),
@@ -36,7 +48,9 @@ class OrdersFilterList extends StatelessWidget {
             selectedColor: AppColors.primary,
             backgroundColor: AppColors.white,
             labelStyle: TextStyle(
-              color: isSelected ? AppColors.white : AppColors.primary,
+              color: isSelected
+                  ? AppColors.white
+                  : AppColors.primary,
               fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
